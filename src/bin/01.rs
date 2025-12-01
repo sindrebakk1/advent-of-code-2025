@@ -32,21 +32,25 @@ impl Dial {
         self.position = (self.position + len - 1) % len;
     }
 
-    pub fn turn_right<F>(&mut self, n: usize, mut on_tick: F)
-    where F: FnMut(u8),
-    {
-        for _ in 0..n {
-            self.step_right();
-            on_tick(self.current());
+    pub fn step(&mut self, dir: Direction) {
+        match dir {
+            Direction::Left => self.step_right(),
+            Direction::Right => self.step_left(),
         }
     }
 
-    pub fn turn_left<F>(&mut self, n: usize, mut on_tick: F)
+    pub fn turn(&mut self, dir: Direction, steps: usize) {
+        for _ in 0..steps {
+            self.step(dir);
+        }
+    }
+
+    pub fn turn_with<F>(&mut self, dir: Direction, steps: usize, mut on_tick: F)
     where F: FnMut(u8),
     {
-        for _ in 0..n {
-            self.step_left();
-            on_tick(self.current());
+        for _ in 0..steps {
+            self.step(dir);
+            on_tick(self.numbers[self.position]);
         }
     }
 
@@ -55,6 +59,7 @@ impl Dial {
     }
 }
 
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub enum Direction {
     Left,
     Right,
@@ -76,10 +81,7 @@ pub fn part_one(input: &str) -> Option<u64> {
     let mut dial = Dial::new();
     input.lines().map(parse_line).try_fold(0u64, |mut acc, cur| {
         let (dir, steps) = cur?;
-        match dir {
-            Direction::Left => dial.turn_left(steps, |_| {}),
-            Direction::Right => dial.turn_right(steps, |_| {}),
-        };
+        dial.turn(dir, steps);
         if dial.current() == 0 { acc += 1 };
         Some(acc)
     })
@@ -89,18 +91,11 @@ pub fn part_two(input: &str) -> Option<u64> {
     let mut dial = Dial::new();
     input.lines().map(parse_line).try_fold(0u64, |mut acc, cur| {
         let (dir, steps) = cur?;
-        match dir {
-            Direction::Left => dial.turn_left(steps, |current| {
-                if current == 0 {
-                    acc += 1;
-                }
-            }),
-            Direction::Right => dial.turn_right(steps, |current| {
-                if current == 0 {
-                    acc += 1;
-                }
-            })
-        };
+        dial.turn_with(dir, steps, |current| {
+            if current == 0 {
+                acc += 1;
+            }
+        });
         Some(acc)
     })
 }
