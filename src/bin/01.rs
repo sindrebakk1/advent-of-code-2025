@@ -76,7 +76,7 @@ pub fn part_one(input: &str) -> Option<u64> {
     input
         .lines()
         .map(parse_line)
-        .try_fold(0u64, |mut acc, cur| {
+        .try_fold(0, |mut acc, cur| {
             let (dir, steps) = cur?;
             dial.turn(dir, steps);
             if dial.current() == 0 {
@@ -91,7 +91,7 @@ pub fn part_two(input: &str) -> Option<u64> {
     input
         .lines()
         .map(parse_line)
-        .try_fold(0u64, |mut acc, cur| {
+        .try_fold(0, |mut acc, cur| {
             let (dir, steps) = cur?;
             dial.turn_with(dir, steps, |current| {
                 if current == 0 {
