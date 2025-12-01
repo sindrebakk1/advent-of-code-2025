@@ -73,33 +73,27 @@ pub fn parse_line(line: &str) -> Option<(Direction, usize)> {
 
 pub fn part_one(input: &str) -> Option<u64> {
     let mut dial = Dial::default();
-    input
-        .lines()
-        .map(parse_line)
-        .try_fold(0, |mut acc, cur| {
-            let (dir, steps) = cur?;
-            dial.turn(dir, steps);
-            if dial.current() == 0 {
-                acc += 1
-            };
-            Some(acc)
-        })
+    input.lines().map(parse_line).try_fold(0, |mut acc, cur| {
+        let (dir, steps) = cur?;
+        dial.turn(dir, steps);
+        if dial.current() == 0 {
+            acc += 1
+        };
+        Some(acc)
+    })
 }
 
 pub fn part_two(input: &str) -> Option<u64> {
     let mut dial = Dial::default();
-    input
-        .lines()
-        .map(parse_line)
-        .try_fold(0, |mut acc, cur| {
-            let (dir, steps) = cur?;
-            dial.turn_with(dir, steps, |current| {
-                if current == 0 {
-                    acc += 1;
-                }
-            });
-            Some(acc)
-        })
+    input.lines().map(parse_line).try_fold(0, |mut acc, cur| {
+        let (dir, steps) = cur?;
+        dial.turn_with(dir, steps, |current| {
+            if current == 0 {
+                acc += 1;
+            }
+        });
+        Some(acc)
+    })
 }
 
 #[cfg(test)]
