@@ -1,4 +1,4 @@
-<img src="./.assets/christmas_ferris.png" width="164">
+<img src="./.assets/christmas_ferris.png" width="256">
 
 # 🎄 Advent of Code 2025
 
