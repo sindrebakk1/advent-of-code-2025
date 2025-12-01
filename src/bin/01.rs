@@ -1,5 +1,3 @@
-use std::ops::Index;
-
 advent_of_code::solution!(1);
 
 pub struct Dial {
@@ -7,17 +5,9 @@ pub struct Dial {
     position: usize,
 }
 
-impl Dial {
-    pub fn new() -> Dial {
+impl Default for Dial {
+    fn default() -> Self {
         Dial { numbers: std::array::from_fn(|i| { i as u8 }), position: 50 }
-    }
-}
-
-impl Index<usize> for Dial {
-    type Output = u8;
-
-    fn index(&self, index: usize) -> &Self::Output {
-        &self.numbers[index]
     }
 }
 
@@ -73,12 +63,12 @@ pub fn parse_line(line: &str) -> Option<(Direction, usize)> {
     match dir {
         'L' => Some((Direction::Left, steps as usize)),
         'R' => Some((Direction::Right, steps as usize)),
-        _ => return None,
+        _ => None,
     }
 }
 
 pub fn part_one(input: &str) -> Option<u64> {
-    let mut dial = Dial::new();
+    let mut dial = Dial::default();
     input.lines().map(parse_line).try_fold(0u64, |mut acc, cur| {
         let (dir, steps) = cur?;
         dial.turn(dir, steps);
@@ -88,7 +78,7 @@ pub fn part_one(input: &str) -> Option<u64> {
 }
 
 pub fn part_two(input: &str) -> Option<u64> {
-    let mut dial = Dial::new();
+    let mut dial = Dial::default();
     input.lines().map(parse_line).try_fold(0u64, |mut acc, cur| {
         let (dir, steps) = cur?;
         dial.turn_with(dir, steps, |current| {
