@@ -7,7 +7,10 @@ pub struct Dial {
 
 impl Default for Dial {
     fn default() -> Self {
-        Dial { numbers: std::array::from_fn(|i| { i as u8 }), position: 50 }
+        Dial {
+            numbers: std::array::from_fn(|i| i as u8),
+            position: 50,
+        }
     }
 }
 
@@ -36,7 +39,8 @@ impl Dial {
     }
 
     pub fn turn_with<F>(&mut self, dir: Direction, steps: usize, mut on_tick: F)
-    where F: FnMut(u8),
+    where
+        F: FnMut(u8),
     {
         for _ in 0..steps {
             self.step(dir);
@@ -69,25 +73,33 @@ pub fn parse_line(line: &str) -> Option<(Direction, usize)> {
 
 pub fn part_one(input: &str) -> Option<u64> {
     let mut dial = Dial::default();
-    input.lines().map(parse_line).try_fold(0u64, |mut acc, cur| {
-        let (dir, steps) = cur?;
-        dial.turn(dir, steps);
-        if dial.current() == 0 { acc += 1 };
-        Some(acc)
-    })
+    input
+        .lines()
+        .map(parse_line)
+        .try_fold(0u64, |mut acc, cur| {
+            let (dir, steps) = cur?;
+            dial.turn(dir, steps);
+            if dial.current() == 0 {
+                acc += 1
+            };
+            Some(acc)
+        })
 }
 
 pub fn part_two(input: &str) -> Option<u64> {
     let mut dial = Dial::default();
-    input.lines().map(parse_line).try_fold(0u64, |mut acc, cur| {
-        let (dir, steps) = cur?;
-        dial.turn_with(dir, steps, |current| {
-            if current == 0 {
-                acc += 1;
-            }
-        });
-        Some(acc)
-    })
+    input
+        .lines()
+        .map(parse_line)
+        .try_fold(0u64, |mut acc, cur| {
+            let (dir, steps) = cur?;
+            dial.turn_with(dir, steps, |current| {
+                if current == 0 {
+                    acc += 1;
+                }
+            });
+            Some(acc)
+        })
 }
 
 #[cfg(test)]
