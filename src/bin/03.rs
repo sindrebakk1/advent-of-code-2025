@@ -5,19 +5,19 @@ pub fn largest_jolt(bank: Vec<u8>, bank_size: usize) -> Option<u64> {
     let mut digits = Vec::with_capacity(bank_size);
 
     let slice = &bank[..len - bank_size + 1];
-    let max = *slice.iter().max()?;
-    let mut idx = slice.iter().position(|&x| x == max)?;
+    let max = slice.iter().max()?;
+    let mut idx = slice.iter().position(|x| x == max)?;
 
     digits.push(bank[idx]);
 
     for n in 1..bank_size {
         let slice = &bank[idx + 1..len - bank_size + 1 + n];
-        let max = *slice.iter().max()?;
-        idx += slice.iter().position(|&x| x == max)? + 1;
+        let max = slice.iter().max()?;
+        idx += slice.iter().position(|x| x == max)? + 1;
         digits.push(bank[idx]);
     }
 
-    Some(digits.iter().fold(0, |acc, x| acc * 10 + *x as u64))
+    Some(digits.iter().fold(0, |acc, &x| acc * 10 + x as u64))
 }
 
 pub fn part_one(input: &str) -> Option<u64> {
