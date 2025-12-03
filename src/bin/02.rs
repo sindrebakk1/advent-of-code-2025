@@ -3,22 +3,22 @@ use itertools::Itertools;
 advent_of_code::solution!(2);
 
 pub fn part_one(input: &str) -> Option<u64> {
-    fn is_valid(id: String) -> bool {
-        if !id.len().is_multiple_of(2) {
-            return true;
+    fn is_invalid(id: u64) -> bool {
+        let len = (id as f64).log10().floor() as u32 + 1;
+        if !len.is_multiple_of(2) {
+            return false;
         }
-        let (p1, p2) = id.split_at(id.len() / 2);
-        p1 != p2
+        let divisor = 10u64.pow(len / 2);
+        (id / divisor) == (id % divisor)
     }
 
     input
         .trim()
         .split(',')
-        .filter(|r| !r.is_empty())
         .try_fold(0, |mut acc, range| {
             let (start, end) = range.split('-').collect_tuple()?;
             for id in start.parse::<u64>().ok()?..=end.parse::<u64>().ok()? {
-                if !is_valid(id.to_string()) {
+                if is_invalid(id) {
                     acc += id;
                 }
             }
@@ -27,30 +27,33 @@ pub fn part_one(input: &str) -> Option<u64> {
 }
 
 pub fn part_two(input: &str) -> Option<u64> {
-    fn is_valid(id: String) -> bool {
-        let bytes = id.as_bytes();
-        let n = bytes.len();
-
-        for pat_len in 1..=n / 2 {
-            if !n.is_multiple_of(pat_len) {
+    fn is_invalid(id: u64) -> bool {
+        let len = (id as f64).log10().floor() as u32 + 1;
+        'outer: for pat_len in 1..=len / 2 {
+            if !len.is_multiple_of(pat_len) {
                 continue;
             }
-            let pat = &bytes[..pat_len];
-            if bytes.chunks(pat_len).all(|chunk| chunk == pat) {
-                return false;
+            let divisor = 10u64.pow(pat_len);
+            let pat = id % divisor;
+            let mut rest = id;
+            for _ in 0..len / pat_len {
+                if rest % divisor != pat {
+                    continue 'outer;
+                }
+                rest /= divisor;
             }
+            return true
         }
-        true
+        false
     }
 
     input
         .trim()
         .split(',')
-        .filter(|r| !r.is_empty())
         .try_fold(0, |mut acc, range| {
             let (start, end) = range.split('-').collect_tuple()?;
             for id in start.parse::<u64>().ok()?..=end.parse::<u64>().ok()? {
-                if !is_valid(id.to_string()) {
+                if is_invalid(id) {
                     acc += id;
                 }
             }
