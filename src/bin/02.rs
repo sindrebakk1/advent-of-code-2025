@@ -12,18 +12,15 @@ pub fn part_one(input: &str) -> Option<u64> {
         (id / divisor) == (id % divisor)
     }
 
-    input
-        .trim()
-        .split(',')
-        .try_fold(0, |mut acc, range| {
-            let (start, end) = range.split('-').collect_tuple()?;
-            for id in start.parse::<u64>().ok()?..=end.parse::<u64>().ok()? {
-                if is_invalid(id) {
-                    acc += id;
-                }
+    input.trim().split(',').try_fold(0, |mut acc, range| {
+        let (start, end) = range.split('-').collect_tuple()?;
+        for id in start.parse::<u64>().ok()?..=end.parse::<u64>().ok()? {
+            if is_invalid(id) {
+                acc += id;
             }
-            Some(acc)
-        })
+        }
+        Some(acc)
+    })
 }
 
 pub fn part_two(input: &str) -> Option<u64> {
@@ -42,23 +39,20 @@ pub fn part_two(input: &str) -> Option<u64> {
                 }
                 rest /= divisor;
             }
-            return true
+            return true;
         }
         false
     }
 
-    input
-        .trim()
-        .split(',')
-        .try_fold(0, |mut acc, range| {
-            let (start, end) = range.split('-').collect_tuple()?;
-            for id in start.parse::<u64>().ok()?..=end.parse::<u64>().ok()? {
-                if is_invalid(id) {
-                    acc += id;
-                }
+    input.trim().split(',').try_fold(0, |mut acc, range| {
+        let (start, end) = range.split('-').collect_tuple()?;
+        for id in start.parse::<u64>().ok()?..=end.parse::<u64>().ok()? {
+            if is_invalid(id) {
+                acc += id;
             }
-            Some(acc)
-        })
+        }
+        Some(acc)
+    })
 }
 
 #[cfg(test)]
