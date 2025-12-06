@@ -18,7 +18,7 @@ pub fn parse_input(input: &str) -> (Vec<(u64, u64)>, Vec<u64>) {
         .trim()
         .lines()
         .map(|id| id.parse().unwrap())
-        .collect::<Vec<_>>();
+        .collect();
 
     (ranges, ids)
 }
@@ -102,11 +102,11 @@ mod tests {
 
     #[test]
     fn test_ranges_overlap() {
-        assert_eq!(ranges_overlap(&(3, 5), &(10, 14)), false);
-        assert_eq!(ranges_overlap(&(10, 14), &(16, 20)), false);
-        assert_eq!(ranges_overlap(&(16, 20), &(12, 18)), true);
-        assert_eq!(ranges_overlap(&(16, 20), &(17, 19)), true);
-        assert_eq!(ranges_overlap(&(16, 20), &(17, 22)), true);
+        assert!(!ranges_overlap(&(3, 5), &(10, 14)));
+        assert!(ranges_overlap(&(16, 20), &(12, 18)));
+        assert!(ranges_overlap(&(16, 20), &(17, 19)));
+        assert!(ranges_overlap(&(16, 20), &(17, 22)));
+        assert!(!ranges_overlap(&(10, 14), &(16, 20)));
     }
 
     #[test]
