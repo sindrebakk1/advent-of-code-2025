@@ -14,11 +14,7 @@ pub fn parse_input(input: &str) -> (Vec<(u64, u64)>, Vec<u64>) {
         })
         .collect();
 
-    let ids = ids
-        .trim()
-        .lines()
-        .map(|id| id.parse().unwrap())
-        .collect();
+    let ids = ids.trim().lines().map(|id| id.parse().unwrap()).collect();
 
     (ranges, ids)
 }
