@@ -3,7 +3,7 @@ use std::collections::HashSet;
 
 advent_of_code::solution!(7);
 
-pub fn parse_input(input: &str) -> (usize, Vec<Vec<bool>>) {
+pub fn parse_input(input: &str) -> (usize, ArrayVec<ArrayVec<bool, 142>, 142>) {
     let mut start_pos: usize = 0;
 
     let map = input
