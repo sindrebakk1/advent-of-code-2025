@@ -3,7 +3,9 @@ use std::collections::HashSet;
 
 advent_of_code::solution!(7);
 
-pub fn parse_input(input: &str) -> (usize, ArrayVec<ArrayVec<bool, 142>, 142>) {
+pub const MAP_SIZE: usize = 142;
+
+pub fn parse_input(input: &str) -> (usize, ArrayVec<ArrayVec<bool, MAP_SIZE>, MAP_SIZE>) {
     let mut start_pos: usize = 0;
 
     let map = input
@@ -34,8 +36,8 @@ pub fn part_one(input: &str) -> Option<u64> {
     let mut splits = 0;
 
     for row in map.iter() {
-        let mut to_remove: ArrayVec<usize, 142> = ArrayVec::new();
-        let mut to_insert: ArrayVec<usize, 142> = ArrayVec::new();
+        let mut to_remove: ArrayVec<usize, MAP_SIZE> = ArrayVec::new();
+        let mut to_insert: ArrayVec<usize, MAP_SIZE> = ArrayVec::new();
         for &beam in beams.iter() {
             if row[beam] {
                 splits += 1;
@@ -58,16 +60,16 @@ pub fn part_one(input: &str) -> Option<u64> {
 pub fn part_two(input: &str) -> Option<u64> {
     let (start, map) = parse_input(input);
 
-    let mut beams = [0u64; 142];
+    let mut beams = [0u64; MAP_SIZE];
     beams[start] = 1;
 
-    let mut next = [0u64; 142];
+    let mut next = [0u64; MAP_SIZE];
     let mut timelines: u64 = 1;
 
     for row in map.iter() {
         next.fill(0);
 
-        for i in 0..142 {
+        for i in 0..MAP_SIZE {
             let count = beams[i];
             if count == 0 {
                 continue;
