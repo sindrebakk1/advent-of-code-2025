@@ -18,7 +18,7 @@ pub fn parse_input(input: &str) -> Vec<IVec3> {
         .collect()
 }
 
-pub fn collect_sorted_distances(boxes: &[IVec3], count: usize) -> Vec<(IVec3, IVec3)> {
+pub fn take_sorted_pairs(boxes: &[IVec3], count: usize) -> Vec<(IVec3, IVec3)> {
     boxes
         .iter()
         .tuple_combinations()
@@ -31,38 +31,28 @@ pub fn collect_sorted_distances(boxes: &[IVec3], count: usize) -> Vec<(IVec3, IV
 
 pub fn count_circuits(input: &str, count: usize) -> Option<u64> {
     let junction_boxes = parse_input(input);
-    let pairs = collect_sorted_distances(&junction_boxes, count);
-    let mut circuits: Vec<HashSet<IVec3>> = Vec::new();
+    let pairs = take_sorted_pairs(&junction_boxes, count);
+    let mut circuits: Vec<HashSet<IVec3>> = Vec::with_capacity(pairs.len());
 
-    'outer: for (a, b) in pairs {
-        for circuit in circuits.iter_mut() {
-            match (circuit.contains(&a), circuit.contains(&b)) {
-                (true, true) => continue 'outer,
-                (true, false) => {
-                    circuit.insert(b);
-                    continue 'outer;
-                }
-                (false, true) => {
-                    circuit.insert(a);
-                    continue 'outer;
-                }
-                (false, false) => (),
-            }
+    for (a, b) in pairs {
+        let matching_circuits: Vec<usize> = circuits
+            .iter()
+            .enumerate()
+            .filter(|(_, c)| c.contains(&a) || c.contains(&b))
+            .map(|(i, _)| i)
+            .collect();
+        if matching_circuits.is_empty() {
+            circuits.push([a, b].iter().copied().collect());
+            continue;
         }
-        circuits.push([a, b].iter().copied().collect());
-    }
-
-    while circuits.iter().tuple_combinations().any(|(a, b)| {
-        a.iter().any(|item| b.contains(item)) || b.iter().any(|item| a.contains(item))
-    }) {
-        for (i, j) in (0..circuits.len()).tuple_combinations() {
-            if circuits[i].iter().any(|b| circuits[j].contains(b))
-                || circuits[j].iter().any(|b| circuits[i].contains(b))
-            {
-                for b in circuits[j].clone() {
-                    circuits[i].insert(b);
-                }
-                circuits[j].clear()
+        let first_match = *matching_circuits.first().unwrap();
+        circuits[first_match].insert(a);
+        circuits[first_match].insert(b);
+        let mut rest = matching_circuits[1..].to_vec();
+        while let Some(idx) = rest.pop() {
+            let removed = circuits.remove(idx);
+            for junction_box in removed {
+                circuits[first_match].insert(junction_box);
             }
         }
     }
@@ -81,7 +71,7 @@ pub fn part_one(input: &str) -> Option<u64> {
     count_circuits(input, 1000)
 }
 
-pub fn collect_sorted_pairs_p2(boxes: &[IVec3]) -> Vec<(IVec3, IVec3)> {
+pub fn collect_sorted_pairs(boxes: &[IVec3]) -> Vec<(IVec3, IVec3)> {
     boxes
         .iter()
         .tuple_combinations()
@@ -92,9 +82,9 @@ pub fn collect_sorted_pairs_p2(boxes: &[IVec3]) -> Vec<(IVec3, IVec3)> {
 }
 
 pub fn part_two(input: &str) -> Option<u64> {
-    let boxes = parse_input(input);
-    let pairs = collect_sorted_pairs_p2(&boxes);
-    let mut circuits: Vec<HashSet<IVec3>> = Vec::new();
+    let junction_boxes = parse_input(input);
+    let pairs = collect_sorted_pairs(&junction_boxes);
+    let mut circuits: Vec<HashSet<IVec3>> = Vec::with_capacity(pairs.len());
 
     for (a, b) in pairs {
         let matching_circuits: Vec<usize> = circuits
@@ -112,12 +102,12 @@ pub fn part_two(input: &str) -> Option<u64> {
         circuits[first_match].insert(b);
         let mut rest = matching_circuits[1..].to_vec();
         while let Some(idx) = rest.pop() {
-            for junction_box in circuits[idx].clone() {
+            let removed = circuits.remove(idx);
+            for junction_box in removed {
                 circuits[first_match].insert(junction_box);
             }
-            circuits.remove(idx);
         }
-        if circuits.iter().any(|c| c.len() == boxes.len()) {
+        if circuits.iter().any(|c| c.len() == junction_boxes.len()) {
             return Some(a.x as u64 * b.x as u64);
         }
     }
