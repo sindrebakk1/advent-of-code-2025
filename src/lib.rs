@@ -86,3 +86,71 @@ impl Sub<IVec3> for IVec3 {
         }
     }
 }
+
+#[derive(Debug)]
+pub struct DSU {
+    parent: Vec<usize>,
+    size: Vec<u64>,
+}
+
+impl DSU {
+    pub fn new(n: usize) -> Self {
+        let parent = (0..n).collect();
+        let size = vec![1; n];
+        Self { parent, size }
+    }
+
+    pub fn find(&mut self, x: usize) -> usize {
+        if self.parent[x] != x {
+            let p = self.parent[x];
+            self.parent[x] = self.find(p);
+        }
+        self.parent[x]
+    }
+
+    pub fn union(&mut self, a: usize, b: usize) {
+        let mut ra = self.find(a);
+        let mut rb = self.find(b);
+        if ra == rb {
+            return;
+        }
+
+        if self.size[ra] < self.size[rb] {
+            std::mem::swap(&mut ra, &mut rb);
+        }
+        self.parent[rb] = ra;
+        self.size[ra] += self.size[rb];
+    }
+
+    pub fn component_sizes(&mut self) -> Vec<u64> {
+        let n = self.parent.len();
+        let mut root_sizes = vec![0u64; n];
+        for i in 0..n {
+            let r = self.find(i);
+            root_sizes[r] += 1;
+        }
+        root_sizes.into_iter().filter(|&s| s > 0).collect()
+    }
+
+    pub fn component_size(&mut self, x: usize) -> u64 {
+        let r = self.find(x);
+        self.size[r]
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub struct OrdF64(pub f64);
+
+impl Eq for OrdF64 {}
+
+impl PartialOrd for OrdF64 {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for OrdF64 {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.0.total_cmp(&other.0)
+    }
+}

@@ -1,6 +1,5 @@
-use advent_of_code::IVec3;
-use itertools::Itertools;
-use std::collections::HashSet;
+use advent_of_code::{DSU, IVec3, OrdF64};
+use std::collections::BinaryHeap;
 
 advent_of_code::solution!(8);
 
@@ -8,106 +7,100 @@ pub fn parse_input(input: &str) -> Vec<IVec3> {
     input
         .lines()
         .map(|line| {
-            let (x, y, z) = line
-                .split(",")
-                .map(|x| x.parse().unwrap())
-                .collect_tuple()
-                .unwrap();
+            let (x, rest) = line.split_once(',').unwrap();
+            let (y, z) = rest.split_once(',').unwrap();
+
+            let x = x.parse().unwrap();
+            let y = y.parse().unwrap();
+            let z = z.parse().unwrap();
+
             IVec3::new(x, y, z)
         })
         .collect()
 }
+pub fn take_sorted_pairs(boxes: &[IVec3], count: usize) -> Vec<(usize, usize)> {
+    let mut heap: BinaryHeap<(OrdF64, (usize, usize))> = BinaryHeap::with_capacity(count);
 
-pub fn take_sorted_pairs(boxes: &[IVec3], count: usize) -> Vec<(IVec3, IVec3)> {
-    boxes
-        .iter()
-        .tuple_combinations()
-        .map(|(&a, &b)| (a.distance(b), (a, b)))
-        .sorted_by(|(a, _), (b, _)| a.total_cmp(b))
-        .take(count)
-        .map(|(_, b)| b)
+    for i in 0..boxes.len() {
+        for j in (i + 1)..boxes.len() {
+            let d = boxes[i].distance(boxes[j]);
+            let item = (OrdF64(d), (i, j));
+
+            if heap.len() < count {
+                heap.push(item);
+            } else if item < *heap.peek().unwrap() {
+                heap.pop();
+                heap.push(item);
+            }
+        }
+    }
+
+    heap.into_sorted_vec()
+        .into_iter()
+        .map(|(_, ij)| ij)
         .collect()
 }
 
 pub fn count_circuits(input: &str, count: usize) -> Option<u64> {
     let junction_boxes = parse_input(input);
-    let pairs = take_sorted_pairs(&junction_boxes, count);
-    let mut circuits: Vec<HashSet<IVec3>> = Vec::with_capacity(pairs.len());
 
-    for (a, b) in pairs {
-        let matching_circuits: Vec<usize> = circuits
-            .iter()
-            .enumerate()
-            .filter(|(_, c)| c.contains(&a) || c.contains(&b))
-            .map(|(i, _)| i)
-            .collect();
-        if matching_circuits.is_empty() {
-            circuits.push([a, b].iter().copied().collect());
-            continue;
-        }
-        let first_match = *matching_circuits.first().unwrap();
-        circuits[first_match].insert(a);
-        circuits[first_match].insert(b);
-        let mut rest = matching_circuits[1..].to_vec();
-        while let Some(idx) = rest.pop() {
-            let removed = circuits.remove(idx);
-            for junction_box in removed {
-                circuits[first_match].insert(junction_box);
-            }
-        }
+    let n = junction_boxes.len();
+
+    let pairs = take_sorted_pairs(&junction_boxes, count);
+
+    let mut dsu = DSU::new(n);
+    for (i, j) in pairs {
+        dsu.union(i, j);
     }
 
-    let counts: Vec<u64> = circuits
-        .iter()
-        .map(|c| c.len() as u64)
-        .sorted_by(|a, b| b.cmp(a))
-        .take(3)
-        .collect();
+    let mut sizes = dsu.component_sizes();
+    sizes.sort_unstable_by(|a, b| b.cmp(a)); // descending
 
-    Some(counts.iter().product::<u64>())
+    let result = sizes.iter().take(3).product::<u64>();
+    Some(result)
 }
 
 pub fn part_one(input: &str) -> Option<u64> {
     count_circuits(input, 1000)
 }
 
-pub fn collect_sorted_pairs(boxes: &[IVec3]) -> Vec<(IVec3, IVec3)> {
-    boxes
-        .iter()
-        .tuple_combinations()
-        .map(|(&a, &b)| (a.distance(b), (a, b)))
-        .sorted_by(|(a, _), (b, _)| a.total_cmp(b))
-        .map(|(_, b)| b)
-        .collect()
+pub fn collect_sorted_pairs(boxes: &[IVec3]) -> Vec<(usize, usize)> {
+    let n = boxes.len();
+    if n < 2 {
+        return Vec::new();
+    }
+
+    let num_pairs = n * (n - 1) / 2;
+    let mut pairs: Vec<(OrdF64, (usize, usize))> = Vec::with_capacity(num_pairs);
+
+    for i in 0..n {
+        for j in (i + 1)..n {
+            let d = boxes[i].distance(boxes[j]);
+            pairs.push((OrdF64(d), (i, j)));
+        }
+    }
+
+    pairs.sort_unstable_by(|(da, _), (db, _)| da.cmp(db)); // ascending distance
+
+    pairs.into_iter().map(|(_, ij)| ij).collect()
 }
 
 pub fn part_two(input: &str) -> Option<u64> {
     let junction_boxes = parse_input(input);
-    let pairs = collect_sorted_pairs(&junction_boxes);
-    let mut circuits: Vec<HashSet<IVec3>> = Vec::with_capacity(pairs.len());
+    let n = junction_boxes.len();
+    if n < 2 {
+        return None;
+    }
 
-    for (a, b) in pairs {
-        let matching_circuits: Vec<usize> = circuits
-            .iter()
-            .enumerate()
-            .filter(|(_, c)| c.contains(&a) || c.contains(&b))
-            .map(|(i, _)| i)
-            .collect();
-        if matching_circuits.is_empty() {
-            circuits.push([a, b].iter().copied().collect());
-            continue;
-        }
-        let first_match = *matching_circuits.first().unwrap();
-        circuits[first_match].insert(a);
-        circuits[first_match].insert(b);
-        let mut rest = matching_circuits[1..].to_vec();
-        while let Some(idx) = rest.pop() {
-            let removed = circuits.remove(idx);
-            for junction_box in removed {
-                circuits[first_match].insert(junction_box);
-            }
-        }
-        if circuits.iter().any(|c| c.len() == junction_boxes.len()) {
+    let pairs = collect_sorted_pairs(&junction_boxes);
+    let mut dsu = DSU::new(n);
+
+    for (i, j) in pairs {
+        dsu.union(i, j);
+
+        if dsu.component_size(i) == n as u64 {
+            let a = junction_boxes[i];
+            let b = junction_boxes[j];
             return Some(a.x as u64 * b.x as u64);
         }
     }
