@@ -94,8 +94,16 @@ pub fn part_two(_input: &str) -> Option<u64> {
     let points: Vec<IVec2> = parse_input(_input);
     let edges = collect_edges(&points);
 
-    let horizontal_edges: Vec<Edge> = edges.iter().copied().filter(|e| e.orientation == Orientation::Horizontal).collect();
-    let vertical_edges: Vec<Edge> = edges.iter().copied().filter(|e| e.orientation == Orientation::Vertical).collect();
+    let horizontal_edges: Vec<Edge> = edges
+        .iter()
+        .copied()
+        .filter(|e| e.orientation == Orientation::Horizontal)
+        .collect();
+    let vertical_edges: Vec<Edge> = edges
+        .iter()
+        .copied()
+        .filter(|e| e.orientation == Orientation::Vertical)
+        .collect();
 
     points
         .into_iter()
@@ -132,14 +140,14 @@ mod tests {
     #[test]
     fn test_edge_construction() {
         let _ = [
-            Edge::new(IVec2::new(7,1), IVec2::new(11,1)),
-            Edge::new(IVec2::new(11,1), IVec2::new(11,7)),
-            Edge::new(IVec2::new(11,7), IVec2::new(9,7)),
-            Edge::new(IVec2::new(9,7), IVec2::new(9,5)),
-            Edge::new(IVec2::new(9,5), IVec2::new(2,5)),
-            Edge::new(IVec2::new(2,5), IVec2::new(2,3)),
-            Edge::new(IVec2::new(2,3), IVec2::new(7,3)),
-            Edge::new(IVec2::new(7,3), IVec2::new(7,1)),
+            Edge::new(IVec2::new(7, 1), IVec2::new(11, 1)),
+            Edge::new(IVec2::new(11, 1), IVec2::new(11, 7)),
+            Edge::new(IVec2::new(11, 7), IVec2::new(9, 7)),
+            Edge::new(IVec2::new(9, 7), IVec2::new(9, 5)),
+            Edge::new(IVec2::new(9, 5), IVec2::new(2, 5)),
+            Edge::new(IVec2::new(2, 5), IVec2::new(2, 3)),
+            Edge::new(IVec2::new(2, 3), IVec2::new(7, 3)),
+            Edge::new(IVec2::new(7, 3), IVec2::new(7, 1)),
         ];
     }
 
