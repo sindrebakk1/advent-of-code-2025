@@ -1,3 +1,5 @@
+use itertools::{Either, Itertools};
+use regex::Regex;
 use std::fmt::{Debug, Write};
 
 advent_of_code::solution!(12);
@@ -105,13 +107,13 @@ impl Debug for Region {
 
 pub fn parse_input(input: &str) -> ([Present; 6], Vec<(Region, [u32; 6])>) {
     let mut lines = input.trim().lines().into_iter();
-    let presents = (0..5)
-        .map(|i| {
-            let present = lines[1 + (i * 5)].map(|row| row.chars().take(3).map(|c| match c { '#' => true, '.' => false, _ => unreachable!() }));
+    let re = Regex::new(r"\d+x\d+:").unwrap();
+    let (presents, regions) = lines.partition_map(|line| match re.is_match(line) {
+        true => Either::Right(line),
+        false => Either::Left(line),
+    });
 
-            Present([false; 3]; 3)
-        })
-        .collect_array(6);
+    let regions = regions.map(|line| {});
 }
 
 pub fn part_one(input: &str) -> Option<u64> {
