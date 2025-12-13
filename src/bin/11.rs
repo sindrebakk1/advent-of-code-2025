@@ -32,9 +32,9 @@ impl Debug for DeviceId {
             DeviceId::Normal(hash) => {
                 for &c in hash {
                     f.write_char(c as char)?;
-                };
+                }
                 Ok(())
-            },
+            }
             DeviceId::Output => f.write_str("out"),
         }
     }
@@ -140,7 +140,7 @@ pub fn part_two(input: &str) -> Option<u64> {
                     }
                     continue;
                 }
-                _ => ()
+                _ => (),
             }
             next.device_id = output;
             queue.push_back(next);
@@ -162,7 +162,9 @@ mod tests {
 
     #[test]
     fn test_part_two() {
-        let result = part_two(&advent_of_code::template::read_file_part("examples", DAY, 2));
+        let result = part_two(&advent_of_code::template::read_file_part(
+            "examples", DAY, 2,
+        ));
         assert_eq!(result, Some(2));
     }
 }

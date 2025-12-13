@@ -1,6 +1,7 @@
 use itertools::{Either, Itertools};
 use regex::Regex;
 use std::fmt::{Debug, Write};
+use std::io::Lines;
 
 advent_of_code::solution!(12);
 
@@ -108,12 +109,46 @@ impl Debug for Region {
 pub fn parse_input(input: &str) -> ([Present; 6], Vec<(Region, [u32; 6])>) {
     let mut lines = input.trim().lines().into_iter();
     let re = Regex::new(r"\d+x\d+:").unwrap();
-    let (presents, regions) = lines.partition_map(|line| match re.is_match(line) {
-        true => Either::Right(line),
-        false => Either::Left(line),
-    });
+    let (presents, regions): (Vec<&str>, Vec<&str>) =
+        lines.partition_map(|line| match re.is_match(line) {
+            true => Either::Right(line),
+            false => Either::Left(line),
+        });
 
-    let regions = regions.map(|line| {});
+    let presents = presents
+        .chunks(5)
+        .map(|chunk| {
+            let present_shape = chunk
+                .iter()
+                .skip(1)
+                .take(PRESENT_SIZE)
+                .copied()
+                .map(|l| {
+                    l.chars()
+                        .take(PRESENT_SIZE)
+                        .map(|c| c == '#')
+                        .collect_array::<3>()
+                        .unwrap()
+                })
+                .collect_array::<3>()
+                .unwrap();
+
+            Present(present_shape)
+        })
+        .collect_array::<6>()
+        .unwrap();
+
+    let regions = regions
+        .iter()
+        .map(|line| {
+            let (region_size_str, present_counts_str) = line.split_once(':').unwrap();
+            let (size_x, size_y) = region_size_str.split_once('x').unwrap();
+            let region = Region::new(size_x.parse().unwrap(), size_y.parse().unwrap());
+            let present_counts = present_counts_str.split_whitespace().take(6).map(|count| count.parse().unwrap()).collect_array::<6>().unwrap();
+            (region, present_counts)
+        })
+        .collect();
+    (presents, regions)
 }
 
 pub fn part_one(input: &str) -> Option<u64> {
@@ -189,6 +224,19 @@ mod tests {
         assert!(!region.place_present(0, 2, present));
         println!("{region:?}");
         // assert!(false);
+    }
+
+    #[test]
+    fn test_parse_input() {
+        let (presents, regions) = parse_input(&advent_of_code::template::read_file("examples", DAY));
+        for present in presents {
+            println!("{present:?}");
+        }
+        for (region, presents) in regions {
+            println!("{region:?}");
+            println!("{presents:?}");
+        }
+        assert!(false);
     }
 
     #[test]
