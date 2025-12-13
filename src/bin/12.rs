@@ -83,9 +83,7 @@ pub const VARIATION_COUNT: usize = OFFSET_COUNT * Orientation::ALL.len();
 
 pub type UniqueVariants = [Option<Offsets>; VARIATION_COUNT];
 
-fn unique_variants(
-    p: Present,
-) -> UniqueVariants {
+fn unique_variants(p: Present) -> UniqueVariants {
     let mut seen = HashSet::<[Option<(usize, usize)>; OFFSET_COUNT]>::new();
     let mut out = [None; VARIATION_COUNT];
 
@@ -199,7 +197,7 @@ pub fn solve(
     if required > w * h {
         return false;
     }
-    
+
     let mut instance_types = Vec::new();
     for (t, &count) in counts.iter().enumerate() {
         for _ in 0..count {
