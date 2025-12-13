@@ -1,6 +1,8 @@
+use advent_of_code::dlx::Dlx;
 use itertools::{Either, Itertools};
+use rayon::prelude::*;
 use regex::Regex;
-use std::collections::VecDeque;
+use std::collections::HashSet;
 use std::fmt::Debug;
 
 advent_of_code::solution!(12);
@@ -83,29 +85,21 @@ impl Debug for Present {
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Hash)]
-pub struct Region([[Option<bool>; 50]; 50], (u8, u8));
+pub struct Region([[bool; 50]; 50], (u8, u8));
 
 impl Region {
     pub fn new(w: usize, h: usize) -> Self {
-        let mut grid = [[None; 50]; 50];
-        for row in grid.iter_mut().take(h) {
-            for cell in row.iter_mut().take(w) {
-                *cell = Some(false);
-            }
-        }
-        Region(grid, (w as u8, h as u8))
+        Region([[false; 50]; 50], (w as u8, h as u8))
     }
 
     pub fn place_present(&mut self, x: usize, y: usize, present: Present) -> bool {
         for i in 0..PRESENT_SIZE {
             for j in 0..PRESENT_SIZE {
-                if present.0[i][j] {
-                    let Some(blocked) = self.0[i + y][j + x] else {
-                        return false;
-                    };
-                    if blocked {
-                        return false;
-                    }
+                if !present.0[i][j] {
+                    continue;
+                }
+                if self.0[i + y][j + x] {
+                    return false;
                 }
             }
         }
@@ -113,27 +107,19 @@ impl Region {
         for i in 0..PRESENT_SIZE {
             for j in 0..PRESENT_SIZE {
                 if present.0[i][j] {
-                    self.0[i + y][j + x] = Some(true);
+                    self.0[i + y][j + x] = true;
                 }
             }
         }
         true
     }
 
-    pub fn place_present_at(&mut self, x: usize, y: usize, present: &Present, value: bool) {
-        for i in 0..PRESENT_SIZE {
-            for j in 0..PRESENT_SIZE {
-                if present.0[i][j] {
-                    self.0[i + y][j + x] = Some(value);
-                }
-            }
-        }
-    }
-
+    #[inline(always)]
     pub fn width(&self) -> usize {
         self.1.0 as usize
     }
 
+    #[inline(always)]
     pub fn height(&self) -> usize {
         self.1.1 as usize
     }
@@ -141,23 +127,48 @@ impl Region {
 
 impl Debug for Region {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for row in self.0 {
-            let mut wrote = false;
-            for cell in row {
-                let _ = match cell {
-                    None => break,
-                    Some(true) => f.write_str("# "),
-                    Some(false) => f.write_str(". "),
-                };
-                wrote = true;
+        for y in 0..self.height() {
+            for x in 0..self.width() {
+                match self.0[y][x] {
+                    true => f.write_str("# "),
+                    false => f.write_str(". "),
+                }?;
             }
-            if wrote {
-                writeln!(f)?;
-            }
+            writeln!(f)?;
         }
 
         Ok(())
     }
+}
+
+fn present_cells(p: Present) -> usize {
+    p.0.iter().flatten().filter(|&&b| b).count()
+}
+
+fn offsets(p: Present) -> Vec<(usize, usize)> {
+    let mut v = Vec::new();
+    for y in 0..PRESENT_SIZE {
+        for x in 0..PRESENT_SIZE {
+            if p.0[y][x] {
+                v.push((x, y));
+            }
+        }
+    }
+    v
+}
+
+fn unique_variants(p: Present) -> Vec<Vec<(usize, usize)>> {
+    let mut seen = HashSet::<Vec<(usize, usize)>>::new();
+    let mut out = Vec::new();
+
+    for o in Orientation::ALL {
+        let mut off = offsets(p.rotate(o));
+        off.sort_unstable();
+        if seen.insert(off.clone()) {
+            out.push(off);
+        }
+    }
+    out
 }
 
 pub fn parse_input(input: &str) -> ([Present; PRESENT_COUNT], Vec<(Region, [u8; PRESENT_COUNT])>) {
@@ -211,42 +222,145 @@ pub fn parse_input(input: &str) -> ([Present; PRESENT_COUNT], Vec<(Region, [u8; 
 }
 
 pub fn solve(
-    region: &mut Region,
-    presents: &[Present; PRESENT_COUNT],
-    counts: &mut [u8; PRESENT_COUNT],
+    region: Region,
+    presents: [Present; PRESENT_COUNT],
+    counts: [u8; PRESENT_COUNT],
 ) -> bool {
-    if counts.iter().all(|&c| c == 0) {
+    let w = region.width();
+    let h = region.height();
+
+    // hard prune: area
+    let mut required = 0usize;
+    for i in 0..PRESENT_COUNT {
+        required += present_cells(presents[i]) * counts[i] as usize;
+    }
+    if required > w * h {
+        return false;
+    }
+
+    // expand counts → instance list
+    let mut instance_types = Vec::new();
+    for t in 0..PRESENT_COUNT {
+        for _ in 0..counts[t] {
+            instance_types.push(t);
+        }
+    }
+
+    if instance_types.is_empty() {
         return true;
     }
 
-    for x in 0..=region.width() - PRESENT_SIZE {
-        for y in 0..=region.height() - PRESENT_SIZE {
-            for i in 0..PRESENT_COUNT {
-                if counts[i] == 0 {
-                    continue;
-                }
+    let num_instances = instance_types.len();
+    let num_cells = w * h;
 
-                for orientation in Orientation::ALL {
-                    let present = presents[i].rotate(orientation);
+    // DLX: primary = instances, secondary = cells
+    let mut dlx = Dlx::new(num_instances, num_cells);
 
-                    if region.place_present(x, y, present) {
-                        counts[i] -= 1;
+    let variants: Vec<Vec<Vec<(usize, usize)>>> =
+        presents.iter().copied().map(unique_variants).collect();
 
-                        if solve(region, presents, counts) {
-                            return true;
-                        }
+    let mut row_id = 0usize;
+    let mut cols = Vec::<usize>::with_capacity(10);
 
-                        counts[i] += 1;
-                        region.place_present_at(x, y, &present, false);
+    for (instance_id, &t) in instance_types.iter().enumerate() {
+        for var in &variants[t] {
+            for y0 in 0..=h - PRESENT_SIZE {
+                for x0 in 0..=w - PRESENT_SIZE {
+                    cols.clear();
+                    cols.push(instance_id); // primary column
+
+                    for &(dx, dy) in var {
+                        let x = x0 + dx;
+                        let y = y0 + dy;
+                        cols.push(num_instances + y * w + x);
                     }
+
+                    dlx.add_row(row_id, &cols);
+                    row_id += 1;
                 }
             }
         }
     }
 
-    false
+    dlx.solve_one().is_some()
 }
+// pub fn solve(
+//     region: Region,
+//     presents: [Present; PRESENT_COUNT],
+//     counts: [u8; PRESENT_COUNT],
+// ) -> bool {
+//     if counts.iter().all(|&c| c == 0) {
+//         return true;
+//     }
+//
+//     for x in 0..=region.width() - PRESENT_SIZE {
+//         for y in 0..=region.height() - PRESENT_SIZE {
+//             if region.0[y][x] {
+//                 continue;
+//             }
+//             for i in 0..PRESENT_COUNT {
+//                 if counts[i] == 0 {
+//                     continue;
+//                 }
+//
+//                 let present = presents[i];
+//                 for orientation in Orientation::ALL {
+//                     let mut r = region;
+//                     if r.place_present(x, y, present.rotate(orientation)) {
+//                         println!("{r:?}");
+//                         let mut c = counts;
+//                         c[i] -= 1;
+//                         if solve(r, presents, c) {
+//                             return true;
+//                         }
+//                     }
+//                 }
+//             }
+//         }
+//     }
+//
+//     false
+// }
 
+// pub fn solve(
+//     region: Region,
+//     presents: [Present; PRESENT_COUNT],
+//     counts: [u8; PRESENT_COUNT],
+// ) -> bool {
+//     // success: all presents placed
+//     if counts.iter().all(|&c| c == 0) {
+//         return true;
+//     }
+//
+//     // choose the next present to place (first with count > 0)
+//     let i = match (0..PRESENT_COUNT).find(|&i| counts[i] > 0) {
+//         Some(i) => i,
+//         None => return true,
+//     };
+//
+//     let present = presents[i];
+//
+//     for orientation in Orientation::ALL {
+//         let rotated = present.rotate(orientation);
+//
+//         for y in 0..=region.height() - PRESENT_SIZE {
+//             for x in 0..=region.width() - PRESENT_SIZE {
+//                 let mut r = region;
+//                 if r.place_present(x, y, rotated) {
+//                     let mut c = counts;
+//                     c[i] -= 1;
+//
+//                     if solve(r, presents, c) {
+//                         return true;
+//                     }
+//                 }
+//             }
+//         }
+//     }
+//
+//     false
+// }
+//
 pub fn part_one(input: &str) -> Option<u64> {
     // let (presents, regions) = parse_input(input);
     //
@@ -291,14 +405,19 @@ pub fn part_one(input: &str) -> Option<u64> {
     //     })
     let (presents, regions) = parse_input(input);
 
-    let mut acc = 0;
+    // let mut acc = 0;
+    //
+    // for (region, counts) in regions {
+    //     if solve(region, presents, counts) {
+    //         acc += 1;
+    //     }
+    //     println!("finished region");
+    // }
 
-    for (mut region, mut counts) in regions {
-        if solve(&mut region, &presents, &mut counts) {
-            acc += 1;
-        }
-        println!("finished region");
-    }
+    let acc: u64 = regions
+        .par_iter()
+        .map(|(region, counts)| solve(*region, presents, *counts) as u64)
+        .sum();
 
     Some(acc)
 }

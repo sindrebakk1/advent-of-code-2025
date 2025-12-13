@@ -2,6 +2,8 @@ use std::ops::Sub;
 
 pub mod template;
 
+pub mod dlx;
+
 pub struct Stack<T>(Vec<T>);
 
 impl<T> Stack<T> {
